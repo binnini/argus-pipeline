@@ -10,8 +10,8 @@ from argus.sdk.base import BaseLayer
 
 
 class IngestionLayer(BaseLayer):
-    def __init__(self, source_type: str = "unknown", config: dict | None = None):
-        super().__init__(layer="ingestion", config=config)
+    def __init__(self, source_type: str = "unknown", config: dict | None = None, analyzer=None):
+        super().__init__(layer="ingestion", config=config, analyzer=analyzer)
         self.source_type = source_type
         self._row_count: int | None = None
         self._schema_columns: list[str] | None = None

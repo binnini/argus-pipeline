@@ -10,8 +10,8 @@ from argus.sdk.base import BaseLayer
 
 
 class TransformLayer(BaseLayer):
-    def __init__(self, config: dict | None = None):
-        super().__init__(layer="transform", config=config)
+    def __init__(self, config: dict | None = None, analyzer=None):
+        super().__init__(layer="transform", config=config, analyzer=analyzer)
         self._before: dict = {}
         self._after: dict = {}
 

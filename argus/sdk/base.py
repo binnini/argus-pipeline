@@ -9,15 +9,24 @@ import time
 import traceback
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from argus.sdk.emitter import Emitter
 
+if TYPE_CHECKING:
+    from argus.sdk.analyzers.base import LogAnalyzer
+
 
 class BaseLayer:
-    def __init__(self, layer: str, config: dict | None = None):
+    def __init__(
+        self,
+        layer: str,
+        config: dict | None = None,
+        analyzer: "LogAnalyzer | None" = None,
+    ):
         self.layer = layer
         self.emitter = Emitter(config or {})
+        self.analyzer = analyzer
 
     # ── decorator ──────────────────────────────────────────────────────────
 
@@ -60,18 +69,27 @@ class BaseLayer:
         name: str | None = None,
     ) -> None:
         tb_raw = traceback.format_exc()
+
+        # Analyzer may provide a more informative error message
+        # (e.g. dbt SQL error vs raw CalledProcessError)
+        error_message = str(exc)
+        if self.analyzer:
+            extracted = self.analyzer.extract_error()
+            if extracted:
+                error_message = extracted
+
         event = {
             "event_id": str(uuid.uuid4()),
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "layer": self.layer,
             "function": name or fn.__name__,
             "error_class": type(exc).__name__,
-            "error_message": str(exc),
+            "error_message": error_message,
             "traceback_raw": tb_raw,
             "traceback_summary": _summarize_traceback(tb_raw),
             "duration_sec": duration,
             "severity": "error",
-            "metrics": self._collect_metrics(),
+            "metrics": self._merge_metrics(),
         }
         self.emitter.emit(event)
 
@@ -84,7 +102,7 @@ class BaseLayer:
             "function": fn.__name__,
             "severity": "info",
             "duration_sec": duration,
-            "metrics": self._collect_metrics(),
+            "metrics": self._merge_metrics(),
         }
         self.emitter.emit_success(event)
 
@@ -92,6 +110,18 @@ class BaseLayer:
 
     def _collect_metrics(self) -> dict:
         return {}
+
+    def _merge_metrics(self) -> dict:
+        """
+        Merge analyzer metrics with layer metrics.
+        Layer metrics (manually tracked via track()/snapshot()) take precedence
+        over analyzer metrics, as they are more intentional.
+        """
+        metrics = {}
+        if self.analyzer:
+            metrics.update(self.analyzer.extract_metrics())
+        metrics.update(self._collect_metrics())
+        return metrics
 
 
 # ── helpers ────────────────────────────────────────────────────────────────

@@ -15,8 +15,9 @@ class LoadLayer(BaseLayer):
         target: str = "unknown",
         write_mode: str = "append",
         config: dict | None = None,
+        analyzer=None,
     ):
-        super().__init__(layer="load", config=config)
+        super().__init__(layer="load", config=config, analyzer=analyzer)
         self.target = target
         self.write_mode = write_mode
         self._expected_count: int | None = None
@@ -46,13 +47,18 @@ class LoadLayer(BaseLayer):
 
         loss_rate = (expected - loaded) / max(expected, 1)
         if loss_rate > loss_threshold:
+            self._extra["loss_rate"] = round(loss_rate, 4)
             self.emitter.emit_warning({
                 "layer": "load",
                 "issue": "data_loss_detected",
                 "target": self.target,
-                "loss_rate": round(loss_rate, 4),
-                "expected": expected,
-                "loaded": loaded,
+                "metrics": {
+                    "target": self.target,
+                    "write_mode": self.write_mode,
+                    "expected_count": expected,
+                    "loaded_count": loaded,
+                    "loss_rate": round(loss_rate, 4),
+                },
             })
             return False
         return True
@@ -76,5 +82,8 @@ class LoadLayer(BaseLayer):
             "expected_count": self._expected_count,
             "loaded_count": self._loaded_count,
         }
+        if self._expected_count and self._loaded_count is not None:
+            loss_rate = (self._expected_count - self._loaded_count) / max(self._expected_count, 1)
+            m["loss_rate"] = round(loss_rate, 4)
         m.update(self._extra)
         return {k: v for k, v in m.items() if v is not None}
