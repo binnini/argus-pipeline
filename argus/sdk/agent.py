@@ -21,15 +21,25 @@ def init(
     slack_webhook: str | None = None,
     anthropic_api_key: str | None = None,
     db_path: str = "argus.db",
+    custom_rules: list | None = None,
 ) -> None:
     """
     Initialize Argus globally.
 
         import argus
+        from argus.engine.classifier import CustomRule
+
         argus.init(
-            transport="local",
             slack_webhook="https://hooks.slack.com/...",
             anthropic_api_key="sk-ant-...",
+            custom_rules=[
+                CustomRule(
+                    pattern=r"row count too low|expected \\d+ got \\d+",
+                    error_type="volume_drop",
+                    severity="warning",
+                    needs_llm=True,
+                ),
+            ],
         )
 
     After calling init(), all unhandled exceptions are automatically
@@ -43,6 +53,7 @@ def init(
         "slack_webhook": slack_webhook,
         "anthropic_api_key": anthropic_api_key,
         "db_path": db_path,
+        "custom_rules": custom_rules or [],
     }
 
     # Bootstrap engine singleton

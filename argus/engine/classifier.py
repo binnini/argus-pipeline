@@ -7,7 +7,7 @@ Only unclassified events proceed to LLM analysis.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable
 
 
@@ -17,6 +17,49 @@ class ErrorType:
     severity: str  # warning | error | critical
     description: str
     needs_llm: bool  # False = handle with template, no LLM call
+
+
+@dataclass
+class CustomRule:
+    """
+    User-defined classification rule injected via argus.init(custom_rules=[...]).
+
+    pattern   : regex matched against error_message and traceback_summary (case-insensitive)
+    error_type: name for this error category (can reuse built-in names or define new ones)
+    severity  : "warning" | "error" | "critical"
+    description: template diagnosis used when needs_llm=False
+    needs_llm : whether to call LLM for further analysis
+
+    Example:
+        CustomRule(
+            pattern=r"row count too low|expected \\d+ got \\d+",
+            error_type="volume_drop",
+            severity="warning",
+            description="Source row count dropped significantly",
+            needs_llm=True,
+        )
+    """
+    pattern: str
+    error_type: str
+    severity: str = "error"
+    description: str = ""
+    needs_llm: bool = True
+
+    def to_rule(self) -> tuple[Callable[[dict], bool], ErrorType]:
+        compiled = re.compile(self.pattern, re.IGNORECASE)
+        error_type = ErrorType(
+            name=self.error_type,
+            severity=self.severity,
+            description=self.description or f"Matched custom rule: {self.pattern}",
+            needs_llm=self.needs_llm,
+        )
+
+        def predicate(event: dict) -> bool:
+            msg = event.get("error_message") or ""
+            tb  = event.get("traceback_summary") or ""
+            return bool(compiled.search(msg) or compiled.search(tb))
+
+        return predicate, error_type
 
 
 # ── Rule definitions ───────────────────────────────────────────────────────
@@ -91,12 +134,18 @@ UNKNOWN = ErrorType("unknown", "error", "Unclassified error — requires LLM ana
 
 # ── Public API ─────────────────────────────────────────────────────────────
 
-def classify(event: dict) -> ErrorType:
+def classify(event: dict, custom_rules: list[CustomRule] | None = None) -> ErrorType:
     """
     Run rules in order and return the first match.
+    Custom rules are checked before built-in rules.
     Returns UNKNOWN if no rule matches.
     """
-    for predicate, error_type in RULES:
+    all_rules = []
+    if custom_rules:
+        all_rules = [r.to_rule() for r in custom_rules]
+    all_rules += RULES
+
+    for predicate, error_type in all_rules:
         try:
             if predicate(event):
                 return error_type

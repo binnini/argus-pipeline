@@ -49,8 +49,8 @@ class EnginePipeline:
         from argus.engine.context import build_prompt
         from argus.engine.llm import call_llm
 
-        # 1. Classify
-        error_type = classify(event)
+        # 1. Classify (custom rules run before built-in rules)
+        error_type = classify(event, self.config.get("custom_rules"))
         event["error_type"] = error_type.name
         event["severity"] = error_type.severity
 
