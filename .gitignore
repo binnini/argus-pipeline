@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+
+# Database files
+*.db
+
+# Experiment / demo scripts
+experiment.py
+pipeline_demo.py
+
+# Build
+dist/
+build/
