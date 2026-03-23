@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "argus-pipeline"
+version = "0.1.0"
+description = "Pipeline monitoring agent — I keep watching so you don't have to."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+keywords = ["data-engineering", "pipeline", "monitoring", "observability", "llm"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+]
+dependencies = [
+    "anthropic>=0.25.0",
+    "fastapi>=0.110.0",
+    "uvicorn>=0.29.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pandas>=2.0",
+]
+
+[project.scripts]
+argus-dashboard = "argus.outputs.dashboard.app:app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["argus*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

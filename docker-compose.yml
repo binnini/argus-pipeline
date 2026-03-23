@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  dashboard:
+    build: .
+    ports:
+      - "7070:7070"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - SLACK_WEBHOOK=${SLACK_WEBHOOK:-}
+    volumes:
+      - argus_data:/app/data
+    command: >
+      uvicorn argus.outputs.dashboard.app:app
+      --host 0.0.0.0 --port 7070 --reload
+
+volumes:
+  argus_data:
