@@ -13,6 +13,7 @@ venv/
 # Experiment / demo scripts
 experiment.py
 pipeline_demo.py
+projects/
 
 # Build
 dist/

@@ -17,12 +17,14 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 dependencies = [
-    "anthropic>=0.25.0",
     "fastapi>=0.110.0",
     "uvicorn>=0.29.0",
 ]
 
 [project.optional-dependencies]
+anthropic = [
+    "anthropic>=0.25.0",
+]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
@@ -30,6 +32,7 @@ dev = [
 ]
 
 [project.scripts]
+argus = "argus.cli:main"
 argus-dashboard = "argus.outputs.dashboard.app:app"
 
 [tool.setuptools.packages.find]

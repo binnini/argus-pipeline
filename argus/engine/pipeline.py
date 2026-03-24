@@ -58,7 +58,13 @@ class EnginePipeline:
         llm_result = None
         if error_type.needs_llm:
             prompt = build_prompt(event, error_type)
-            llm_result = call_llm(prompt, self.config.get("anthropic_api_key"))
+            llm_result = call_llm(
+                prompt,
+                backend=self.config.get("llm_backend", "anthropic"),
+                api_key=self.config.get("anthropic_api_key"),
+                ollama_url=self.config.get("ollama_url"),
+                ollama_model=self.config.get("ollama_model"),
+            )
             event["diagnosis"] = llm_result.diagnosis
             event["handled_by"] = "llm"
         else:
